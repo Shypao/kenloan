@@ -221,6 +221,7 @@
   .btn.primary{ background: var(--ink); color:#EDE7D6; }
   .btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--charcoal); }
   .btn.danger{ background: var(--rust-soft); color:var(--rust); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
   .btn.small{ padding:5px 11px; font-size:12px; }
 
   .filters{ display:flex; gap:8px; align-items:center; margin-bottom:14px; }
@@ -802,9 +803,48 @@ function setFilter(f){ state.filter = f; render(); }
 function onSearch(v){ state.search = v; render(); }
 
 function deleteLoan(id){
-  if (!confirm('Remove this loan record? This cannot be undone.')) return;
+  const loan = state.loans.find(l=>l.id===id);
+  if (!loan) return;
+  const modalRoot = document.createElement('div');
+  modalRoot.className = 'overlay';
+  modalRoot.id = 'confirmOverlay';
+  modalRoot.innerHTML = `
+    <div class="modal" style="width:380px">
+      <h3>Remove this loan?</h3>
+      <p style="font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 14px">
+        <strong>${escapeHtml(loan.name)}</strong> (${escapeHtml(loan.id)}) and its full payment history will be permanently deleted. This cannot be undone.
+      </p>
+      <div class="field" style="margin-bottom:16px">
+        <label for="deleteConfirmInput">Type <strong>DELETE</strong> to confirm</label>
+        <input id="deleteConfirmInput" type="text" autocomplete="off" placeholder="DELETE" oninput="onDeleteConfirmInput(this.value)" />
+      </div>
+      <div class="modal-actions" style="margin:0; padding:0; border:none; position:static;">
+        <button class="btn ghost" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn danger" id="confirmDeleteBtn" disabled onclick="confirmDeleteLoan('${id}')">Delete loan</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modalRoot);
+  const input = document.getElementById('deleteConfirmInput');
+  if (input) input.focus();
+}
+
+function onDeleteConfirmInput(value){
+  const btn = document.getElementById('confirmDeleteBtn');
+  if (btn) btn.disabled = value !== 'DELETE';
+}
+
+function closeConfirmModal(){
+  const el = document.getElementById('confirmOverlay');
+  if (el) el.remove();
+}
+
+function confirmDeleteLoan(id){
+  const input = document.getElementById('deleteConfirmInput');
+  if (!input || input.value !== 'DELETE') return;
   state.loans = state.loans.filter(l=>l.id!==id);
   saveLoans();
+  closeConfirmModal();
   render();
   showToast('Loan removed');
 }
