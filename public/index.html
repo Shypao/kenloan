@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Ledger — Lending CRM</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
@@ -351,6 +352,7 @@
 <body>
 <div id="root" class="loading">Opening the ledger…</div>
 
+<script src="/vendor/jspdf.umd.min.js"></script>
 <script>
 const STORAGE_KEY = 'loans-data';
 
@@ -777,11 +779,36 @@ function setFilter(f){ state.filter = f; render(); }
 function onSearch(v){ state.search = v; render(); }
 
 function deleteLoan(id){
-  if (!confirm('Remove this loan record? This cannot be undone.')) return;
+  const loan=state.loans.find(l=>l.id===id);
+  if(!loan)return;
+  const modalRoot=document.createElement('div');
+  modalRoot.className='overlay';
+  modalRoot.id='modalOverlay';
+  modalRoot.innerHTML=`<div class="modal" style="width:430px" role="dialog" aria-modal="true" aria-labelledby="deleteLoanTitle">
+    <h3 id="deleteLoanTitle">Delete borrower?</h3>
+    <div class="detail-item" style="margin-bottom:14px"><small>Borrower · ${escapeHtml(loan.id)}</small><strong>${escapeHtml(loan.name)}</strong></div>
+    <p class="helper" style="margin-bottom:14px">This permanently removes the loan and all of its payment records. This action cannot be undone.</p>
+    <div class="field"><label for="delete_confirmation">Type <strong>delete</strong> to confirm</label><input id="delete_confirmation" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="delete" oninput="updateDeleteConfirmation()" /></div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn danger" id="confirm_delete_button" onclick="confirmDeleteLoan('${id}')" disabled>Delete borrower</button></div>
+  </div>`;
+  document.body.appendChild(modalRoot);
+  document.getElementById('delete_confirmation').focus();
+}
+
+function updateDeleteConfirmation(){
+  const input=document.getElementById('delete_confirmation');
+  const button=document.getElementById('confirm_delete_button');
+  if(button)button.disabled=!input||input.value.trim()!=='delete';
+}
+
+function confirmDeleteLoan(id){
+  const input=document.getElementById('delete_confirmation');
+  if(!input||input.value.trim()!=='delete')return;
   state.loans = state.loans.filter(l=>l.id!==id);
   saveLoans();
+  closeModal();
   render();
-  showToast('Loan removed');
+  showToast('Borrower deleted');
 }
 
 function openModal(id){
@@ -999,11 +1026,50 @@ function upcomingPaymentsNextMonth(loans){
   return loans.map(loan=>({loan,next:nextPaymentInfo(loan)})).filter(x=>x.next&&x.next.date>=start&&x.next.date<=end).sort((a,b)=>a.next.date.localeCompare(b.next.date));
 }
 
+function exportFileName(id,extension){
+  if(!id)return `lending-portfolio-${todayISO()}.${extension}`;
+  const loan=state.loans.find(l=>l.id===id);
+  const borrower=String(loan?.name||'borrower').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase();
+  return `${id}-${borrower}-loan.${extension}`;
+}
+
+function isAppleMobile(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
+
+async function saveExportBlob(blob,filename){
+  const file=new File([blob],filename,{type:blob.type});
+  if(isAppleMobile()&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:filename});
+      showToast('Export ready — choose Save to Files');
+      return;
+    }catch(error){
+      if(error&&error.name==='AbortError')return;
+    }
+  }
+  const url=URL.createObjectURL(blob);
+  if(isAppleMobile()){
+    window.location.href=url;
+    showToast('Export opened — use Share to save it');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    return;
+  }
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  showToast(`${filename.toUpperCase().endsWith('.PDF')?'PDF':'PNG'} downloaded`);
+}
+
 function generatePNG(id){
   const loans=id?state.loans.filter(l=>l.id===id):state.loans;
   if(!loans.length){showToast('There are no loans to export');return;}
   const payments=id?[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)):[];
-  const width=1600,rowHeight=58,height=id?490+(payments.length*50):340+(loans.length*rowHeight);
+  const width=1600,rowHeight=58,height=id?555+(payments.length*50):340+(loans.length*rowHeight);
   const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height;
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#F7F5EF'; ctx.fillRect(0,0,width,height);
@@ -1014,53 +1080,46 @@ function generatePNG(id){
   const totals=loans.reduce((a,l)=>{a.principal+=l.principal;a.payable+=amountToPay(l);a.collected+=l.collected;a.balance+=Math.max(amountToPay(l)-l.collected,0);return a;},{principal:0,payable:0,collected:0,balance:0});
   const metrics=[['PRINCIPAL',totals.principal],['TOTAL COLLECTIBLE',totals.payable],['COLLECTED',totals.collected],['OUTSTANDING',totals.balance]];
   metrics.forEach((m,i)=>{const x=58+i*382;ctx.fillStyle='#FFFFFF';ctx.fillRect(x,136,356,105);ctx.strokeStyle='#DEDCD5';ctx.strokeRect(x,136,356,105);ctx.fillStyle='#8B8880';ctx.font='700 13px Arial';ctx.fillText(m[0],x+20,168);ctx.fillStyle='#17201D';ctx.font='700 25px monospace';ctx.fillText(peso(m[1]),x+20,210);});
-  const cols=[{x:58,w:345,label:'BORROWER / ID'},{x:415,w:240,label:'FUNDING'},{x:667,w:280,label:'PAYMENT PLAN'},{x:959,w:205,label:'COLLECTIBLE'},{x:1176,w:185,label:'COLLECTED'},{x:1373,w:169,label:'BALANCE'}];
+  const cols=[{x:58,w:290,label:'BORROWER / ID'},{x:360,w:185,label:'FUNDING'},{x:557,w:255,label:'PAYMENT PLAN'},{x:824,w:168,label:'COLLECTIBLE'},{x:1004,w:145,label:'COLLECTED'},{x:1161,w:145,label:'BALANCE'},{x:1318,w:224,label:'NEXT DUE'}];
   ctx.fillStyle='#E9E6DE';ctx.fillRect(48,267,1504,42);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';cols.forEach(c=>ctx.fillText(c.label,c.x,293));
   function fit(text,max){const original=String(text);let shown=original;while(shown.length&&ctx.measureText(shown+(shown.length<original.length?'…':'')).width>max)shown=shown.slice(0,-1);return shown+(shown.length<original.length?'…':'');}
-  loans.forEach((l,i)=>{const y=309+i*rowHeight;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,rowHeight);}ctx.fillStyle='#202521';ctx.font='700 15px Arial';ctx.fillText(fit(l.name,300),58,y+23);ctx.fillStyle='#88847C';ctx.font='12px monospace';ctx.fillText(l.id,58,y+43);ctx.fillStyle=l.fundingMethod==='credit-card'?'#355B8A':'#176A55';ctx.font='700 14px Arial';ctx.fillText(methodLabel(l.fundingMethod),415,y+25);ctx.fillStyle='#88847C';ctx.font='12px Arial';ctx.fillText(fit(l.cardBank||'',205),415,y+43);ctx.fillStyle='#202521';ctx.font='14px Arial';ctx.fillText(`${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments} × ${peso(installmentAmount(l))}`,667,y+31);ctx.font='700 14px monospace';ctx.fillText(peso(amountToPay(l)),959,y+31);ctx.fillStyle='#176A55';ctx.fillText(peso(l.collected),1176,y+31);ctx.fillStyle='#A93342';ctx.fillText(peso(Math.max(amountToPay(l)-l.collected,0)),1373,y+31);});
-  if(id){const listY=405;ctx.fillStyle='#202521';ctx.font='700 20px Arial';ctx.fillText(`Payment records (${payments.length})`,58,listY);const paymentCols=[{x:58,label:'PAYMENT DATE'},{x:370,label:'AMOUNT'},{x:650,label:'METHOD'},{x:1050,label:'NOTE'}];ctx.fillStyle='#E9E6DE';ctx.fillRect(48,listY+22,1504,38);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';paymentCols.forEach(c=>ctx.fillText(c.label,c.x,listY+47));payments.forEach((p,i)=>{const y=listY+60+i*50;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,50);}ctx.fillStyle='#222';ctx.font='13px monospace';ctx.fillText(fmtDate(p.date),58,y+31);ctx.fillText(peso(p.amount),370,y+31);ctx.font='13px Arial';ctx.fillText(`${methodLabel(p.method)}${p.provider?' · '+fit(p.provider,220):''}`,650,y+31);ctx.fillStyle='#666';ctx.fillText(fit(p.note||'—',440),1050,y+31);});}
-  canvas.toBlob(blob=>{if(!blob){showToast('Could not create PNG');return;}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=id?`${id}-${String(loans[0].name).replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-loan.png`:`lending-portfolio-${todayISO()}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('PNG report downloaded');},'image/png');
+  loans.forEach((l,i)=>{const y=309+i*rowHeight,next=nextPaymentInfo(l);if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,rowHeight);}ctx.fillStyle='#202521';ctx.font='700 15px Arial';ctx.fillText(fit(l.name,250),58,y+23);ctx.fillStyle='#88847C';ctx.font='12px monospace';ctx.fillText(l.id,58,y+43);ctx.fillStyle=l.fundingMethod==='credit-card'?'#355B8A':'#176A55';ctx.font='700 14px Arial';ctx.fillText(methodLabel(l.fundingMethod),360,y+25);ctx.fillStyle='#88847C';ctx.font='12px Arial';ctx.fillText(fit(l.cardBank||'',160),360,y+43);ctx.fillStyle='#202521';ctx.font='13px Arial';ctx.fillText(fit(`${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments} × ${peso(installmentAmount(l))}`,235),557,y+31);ctx.font='700 13px monospace';ctx.fillText(peso(amountToPay(l)),824,y+31);ctx.fillStyle='#176A55';ctx.fillText(peso(l.collected),1004,y+31);ctx.fillStyle='#A93342';ctx.fillText(peso(Math.max(amountToPay(l)-l.collected,0)),1161,y+31);ctx.fillStyle=next?'#202521':'#176A55';ctx.font='700 13px Arial';ctx.fillText(next?fmtDate(next.date):'PAID',1318,y+24);ctx.fillStyle='#88847C';ctx.font='12px Arial';if(next)ctx.fillText(`#${next.number} · ${peso(next.amount)}`,1318,y+43);});
+  if(id){const next=nextPaymentInfo(loans[0]),listY=470;ctx.fillStyle=next?'#FFF7DF':'#E8F3EE';ctx.fillRect(48,382,1504,58);ctx.fillStyle=next?'#6D5314':'#176A55';ctx.font='700 15px Arial';ctx.fillText(next?`NEXT PAYMENT DUE  ·  #${next.number}  ·  ${fmtDate(next.date)}  ·  ${peso(next.amount)}`:'LOAN PAID IN FULL — NO NEXT PAYMENT DUE',58,417);ctx.fillStyle='#202521';ctx.font='700 20px Arial';ctx.fillText(`Payment records (${payments.length})`,58,listY);const paymentCols=[{x:58,label:'PAYMENT DATE'},{x:370,label:'AMOUNT'},{x:650,label:'METHOD'},{x:1050,label:'NOTE'}];ctx.fillStyle='#E9E6DE';ctx.fillRect(48,listY+22,1504,38);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';paymentCols.forEach(c=>ctx.fillText(c.label,c.x,listY+47));payments.forEach((p,i)=>{const y=listY+60+i*50;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,50);}ctx.fillStyle='#222';ctx.font='13px monospace';ctx.fillText(fmtDate(p.date),58,y+31);ctx.fillText(peso(p.amount),370,y+31);ctx.font='13px Arial';ctx.fillText(`${methodLabel(p.method)}${p.provider?' · '+fit(p.provider,220):''}`,650,y+31);ctx.fillStyle='#666';ctx.fillText(fit(p.note||'—',440),1050,y+31);});}
+  canvas.toBlob(blob=>{if(!blob){showToast('Could not create PNG');return;}saveExportBlob(blob,exportFileName(id,'png'));},'image/png');
 }
 
 function generatePDF(id){
-  const loans = id ? state.loans.filter(l=>l.id===id) : state.loans;
-  if (!loans.length){ showToast('There are no loans to export'); return; }
-  document.querySelectorAll('.print-report').forEach(el=>el.remove());
-  const totals = loans.reduce((a,l)=>{
-    a.principal += l.principal;
-    a.payable += amountToPay(l);
-    a.collected += l.collected;
-    a.balance += Math.max(amountToPay(l)-l.collected,0);
-    return a;
-  },{principal:0,payable:0,collected:0,balance:0});
-  const upcoming=upcomingPaymentsNextMonth(loans);
-  const report = document.createElement('section');
-  report.className = 'print-report';
-  report.innerHTML = `
-    <div class="print-title">
-      <div><h1>Ledger — Loan ${id?'Statement':'Portfolio Report'}</h1><p>${id?'Borrower account details':'Complete loan portfolio'}</p></div>
-      <p>Generated ${new Date().toLocaleString('en-PH')}</p>
-    </div>
-    <div class="print-summary">
-      <div><small>Total principal</small><strong>${peso(totals.principal)}</strong></div>
-      <div><small>Amount to pay</small><strong>${peso(totals.payable)}</strong></div>
-      <div><small>Collected</small><strong>${peso(totals.collected)}</strong></div>
-      <div><small>Outstanding</small><strong>${peso(totals.balance)}</strong></div>
-    </div>
-    <table>
-      <thead><tr><th>Borrower / ID</th><th>Principal</th><th>Funding</th><th>Monthly rate</th><th>Term</th><th>Schedule</th><th>Per period</th><th>Total collectible</th><th>Collected</th><th>Balance</th><th>Due date</th><th>Status</th></tr></thead>
-      <tbody>${loans.map(l=>{
-        const status=computeStatus(l);
-        return `<tr><td><strong>${escapeHtml(l.name)}</strong><br>${l.id}</td><td>${peso(l.principal)}</td><td>${methodLabel(l.fundingMethod)}${l.cardBank?' · '+escapeHtml(l.cardBank):''}</td><td>${Number(l.interestRate).toFixed(2)}%</td><td>${l.termMonths} months</td><td>${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments}</td><td>${peso(installmentAmount(l))}</td><td>${peso(amountToPay(l))}</td><td>${peso(l.collected)}</td><td>${peso(Math.max(amountToPay(l)-l.collected,0))}</td><td>${fmtDate(l.dueDate)}</td><td>${status.toUpperCase()}</td></tr>`;
-      }).join('')}</tbody>
-    </table>
-    <h2 style="font:16px Georgia,serif;margin:18px 0 7px">Upcoming payments — next 1 month</h2>${upcoming.length?`<table><thead><tr><th>Borrower / ID</th><th>Payment</th><th>Due date</th><th>Amount due</th><th>Remaining balance</th></tr></thead><tbody>${upcoming.map(x=>`<tr><td><strong>${escapeHtml(x.loan.name)}</strong><br>${x.loan.id}</td><td>#${x.next.number}</td><td>${fmtDate(x.next.date)}</td><td>${peso(x.next.amount)}</td><td>${peso(x.next.balance)}</td></tr>`).join('')}</tbody></table>`:`<p style="font-size:10px;color:#666">No upcoming payments are due within the next month.</p>`}
-    ${id?`<h2 style="font:16px Georgia,serif;margin:18px 0 7px">Payment records (${(loans[0].payments||[]).length})</h2>${(loans[0].payments||[]).length?`<table><thead><tr><th>Payment date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead><tbody>${[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)).map(p=>`<tr><td>${fmtDate(p.date)}</td><td>${peso(p.amount)}</td><td>${methodLabel(p.method)}${p.provider?' · '+escapeHtml(p.provider):''}</td><td>${escapeHtml(p.note||'—')}</td></tr>`).join('')}</tbody></table>`:`<p style="font-size:10px;color:#666">No dated payment records yet.</p>`}`:''}
-    <div class="print-footer">Ledger Lending CRM · Keep this report for your records.</div>`;
-  document.body.appendChild(report);
-  const cleanup = ()=>{ report.remove(); window.removeEventListener('afterprint',cleanup); };
-  window.addEventListener('afterprint',cleanup);
-  setTimeout(()=>window.print(),100);
+  const loans=id?state.loans.filter(l=>l.id===id):state.loans;
+  if(!loans.length){showToast('There are no loans to export');return;}
+  if(!window.jspdf||!window.jspdf.jsPDF){showToast('PDF generator did not load — refresh and try again');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const pageWidth=doc.internal.pageSize.getWidth(),pageHeight=doc.internal.pageSize.getHeight(),margin=10;
+  const money=n=>`PHP ${Math.round(Number(n)||0).toLocaleString('en-PH')}`;
+  const clean=value=>String(value??'').replace(/[\u2013\u2014]/g,'-').replace(/\u00b7/g,'/');
+  const totals=loans.reduce((a,l)=>{a.principal+=l.principal;a.payable+=amountToPay(l);a.collected+=l.collected;a.balance+=Math.max(amountToPay(l)-l.collected,0);return a;},{principal:0,payable:0,collected:0,balance:0});
+  let y=0;
+  function pageHeader(continued){
+    doc.setFillColor(0,62,53);doc.rect(0,0,pageWidth,25,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(`Ledger - Loan ${id?'Statement':'Portfolio Report'}${continued?' (continued)':''}`,margin,12);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(clean(new Date().toLocaleString('en-PH')),pageWidth-margin,12,{align:'right'});doc.setTextColor(30,34,31);y=32;
+  }
+  function ensureSpace(height){if(y+height>pageHeight-12){doc.addPage();pageHeader(true);return true;}return false;}
+  function drawTable(headers,rows,widths){
+    const rowHeight=8,totalWidth=widths.reduce((s,w)=>s+w,0),startX=margin;
+    ensureSpace(rowHeight*2);
+    doc.setFillColor(233,230,222);doc.rect(startX,y,totalWidth,rowHeight,'F');doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(90,86,80);
+    let x=startX;headers.forEach((h,i)=>{doc.text(clean(h),x+1.5,y+5);x+=widths[i];});y+=rowHeight;
+    rows.forEach((row,rowIndex)=>{if(ensureSpace(rowHeight)){doc.setFillColor(233,230,222);doc.rect(startX,y,totalWidth,rowHeight,'F');x=startX;headers.forEach((h,i)=>{doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(90,86,80);doc.text(clean(h),x+1.5,y+5);x+=widths[i];});y+=rowHeight;}if(rowIndex%2===0){doc.setFillColor(249,248,244);doc.rect(startX,y,totalWidth,rowHeight,'F');}doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(30,34,31);x=startX;row.forEach((cell,i)=>{const clipped=doc.splitTextToSize(clean(cell),widths[i]-3)[0]||'';doc.text(clipped,x+1.5,y+5);x+=widths[i];});y+=rowHeight;});
+  }
+  pageHeader(false);
+  const metrics=[['Principal',totals.principal],['Collectible',totals.payable],['Collected',totals.collected],['Outstanding',totals.balance]],metricWidth=(pageWidth-margin*2-9)/4;
+  metrics.forEach((metric,i)=>{const x=margin+i*(metricWidth+3);doc.setDrawColor(210,207,199);doc.rect(x,y,metricWidth,18);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(115,110,102);doc.text(metric[0].toUpperCase(),x+3,y+6);doc.setFontSize(11);doc.setTextColor(25,30,27);doc.text(money(metric[1]),x+3,y+14);});y+=24;
+  const loanRows=loans.map(l=>{const next=nextPaymentInfo(l);return [`${l.name} / ${l.id}`,money(l.principal),`${methodLabel(l.fundingMethod)}${l.cardBank?' / '+l.cardBank:''}`,`${frequencyLabel(l.paymentFrequency)} / ${l.numberPayments} x ${money(installmentAmount(l))}`,money(amountToPay(l)),money(l.collected),money(Math.max(amountToPay(l)-l.collected,0)),next?`${fmtDate(next.date)} / #${next.number} / ${money(next.amount)}`:'PAID',computeStatus(l).toUpperCase()];});
+  drawTable(['Borrower / ID','Principal','Funding','Payment plan','Collectible','Collected','Balance','Next due date','Status'],loanRows,[41,24,28,44,26,24,24,42,14]);
+  const upcoming=upcomingPaymentsNextMonth(loans);ensureSpace(18);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(25,30,27);doc.text('Payments due - next 1 month',margin,y+7);y+=11;
+  if(upcoming.length)drawTable(['Borrower / ID','Payment','Next due date','Amount due','Remaining balance'],upcoming.map(x=>[`${x.loan.name} / ${x.loan.id}`,`#${x.next.number}`,fmtDate(x.next.date),money(x.next.amount),money(x.next.balance)]),[70,28,50,48,48]);else{doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(100,100,100);doc.text('No payments are due within the next month.',margin,y+5);y+=10;}
+  if(id){const payments=[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)),next=nextPaymentInfo(loans[0]);ensureSpace(24);doc.setFillColor(next?255:232,next?247:243,next?223:238);doc.rect(margin,y,pageWidth-margin*2,13,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(next?109:23,next?83:106,next?20:85);doc.text(next?`NEXT PAYMENT DUE / #${next.number} / ${fmtDate(next.date)} / ${money(next.amount)}`:'LOAN PAID IN FULL - NO NEXT PAYMENT DUE',margin+3,y+8);y+=19;doc.setTextColor(25,30,27);doc.setFontSize(11);doc.text(`Payment records (${payments.length})`,margin,y);y+=5;if(payments.length)drawTable(['Payment date','Amount','Method','Note'],payments.map(p=>[fmtDate(p.date),money(p.amount),`${methodLabel(p.method)}${p.provider?' / '+p.provider:''}`,p.note||'-']),[45,45,70,90]);else{doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('No dated payment records yet.',margin,y+5);}}
+  const pages=doc.getNumberOfPages();for(let page=1;page<=pages;page++){doc.setPage(page);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(110,110,110);doc.text(`Ledger Lending CRM / Page ${page} of ${pages}`,pageWidth-margin,pageHeight-5,{align:'right'});}
+  saveExportBlob(doc.output('blob'),exportFileName(id,'pdf'));
 }
 
 loadLoans();
