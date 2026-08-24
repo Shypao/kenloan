@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Ledger — Lending CRM</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
@@ -174,8 +173,19 @@
   .panel-head h3{ font-family:'Source Serif 4', serif; font-size:17px; margin:0; font-weight:600; }
   .panel-head .count{ font-size:12px; color:var(--muted); font-family:'IBM Plex Mono', monospace; }
 
+  .table-scroll-panel{
+    padding:0;
+    max-height: calc(100vh - 260px);
+    overflow: auto;
+  }
+
   table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   .loan-table{ min-width:1180px; }
+  .loan-table thead th{
+    position: sticky; top: 0; z-index: 2;
+    background: var(--paper-raised);
+    box-shadow: 0 1px 0 var(--line);
+  }
   thead th{
     text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.6px;
     color:var(--muted); font-weight:600; padding: 8px 10px; border-bottom: 1px solid var(--line);
@@ -230,29 +240,27 @@
   /* Modal */
   .overlay{
     position:fixed; inset:0; background:rgba(22,35,43,0.45); display:flex;
-    align-items:center; justify-content:center; z-index:50; overflow-y:auto;
+    align-items:center; justify-content:center; z-index:50;
   }
   .modal{
     background: var(--paper-raised); border-radius:12px; width: 420px; max-width:92vw;
-    max-height:92vh; max-height:92dvh; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
-    padding: 24px 26px; border:1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    max-height:92vh; overflow-y:auto; padding: 24px 26px; border:1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   }
   .modal h3{ font-family:'Source Serif 4',serif; margin:0 0 16px 0; font-size:19px; }
   .field{ margin-bottom:13px; }
   .field label{ display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:5px; font-weight:600; }
-  .field input, .field select, .field textarea{
+  .field input, .field select{
     width:100%; padding:9px 11px; border-radius:6px; border:1px solid var(--line);
     font-family:'Inter'; font-size:13.5px; background:var(--paper);
   }
-  .field textarea{ min-height:76px; resize:vertical; line-height:1.45; }
-  .field input:focus, .field select:focus, .field textarea:focus, .filters input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .field input:focus, .field select:focus, .filters input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
   .field input[readonly]{ background:#EEE9DD; color:var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:600; }
   .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .helper{ font-size:11px; color:var(--muted); margin-top:5px; line-height:1.35; }
   .conditional-fields{ background:#F0F3F8; border:1px solid #DCE2EC; border-radius:9px; padding:12px 12px 0; margin:-2px 0 14px; }
   .section-label{ font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); font-weight:700; margin:4px 0 10px; }
   .topbar-actions{ display:flex; gap:8px; align-items:center; }
-  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin:18px -26px -24px; padding:14px 26px; position:sticky; bottom:0; z-index:2; background:var(--paper-raised); border-top:1px solid var(--line); box-shadow:0 -6px 14px rgba(22,35,43,.06); }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin:18px -26px -24px; padding:14px 26px; position:sticky; bottom:-24px; background:var(--paper-raised); border-top:1px solid var(--line); }
   .row-actions{ display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
   .calculation-box{ background:var(--green-soft); border:1px solid #cbdac5; border-radius:8px; padding:12px 14px; margin:4px 0 14px; }
   .calculation-box .calc-title{ font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:var(--green); font-weight:700; margin-bottom:7px; }
@@ -290,9 +298,9 @@
   @media (max-width: 900px){
     .stats, .stats-secondary{ grid-template-columns: repeat(2,1fr); }
     .main{ padding: 20px; }
-    .overlay{ align-items:flex-start; height:100vh; height:100dvh; padding:max(10px,env(safe-area-inset-top)) 0 max(10px,env(safe-area-inset-bottom)); }
-    .modal{ max-height:calc(100vh - 20px); max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding:20px; }
-    .modal-actions{ margin:16px -20px -20px; padding:12px 20px calc(12px + env(safe-area-inset-bottom)); bottom:0; }
+    .overlay{ align-items:flex-start; padding:10px 0; }
+    .modal{ max-height:calc(100vh - 20px); padding:20px; }
+    .modal-actions{ margin:16px -20px -20px; padding:12px 20px; bottom:-20px; }
     .field-grid{ grid-template-columns:1fr; gap:0; }
     .calc-grid{ grid-template-columns:1fr; }
     .topbar{ align-items:flex-start; gap:12px; }
@@ -324,8 +332,6 @@
     .filters{ overflow-x:auto; padding-bottom:4px; }
     .filters input{ min-width:190px; }
     .modal{ width:calc(100vw - 20px) !important; max-width:none; border-radius:10px; }
-    .modal-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .modal-actions .btn{ min-height:44px; white-space:normal; }
     .detail-grid{ grid-template-columns:1fr; }
     .person-summary{ grid-template-columns:1fr 1fr; }
     .dashboard-cards{ grid-template-columns:1fr; }
@@ -356,7 +362,6 @@
 <body>
 <div id="root" class="loading">Opening the ledger…</div>
 
-<script src="/vendor/jspdf.umd.min.js"></script>
 <script>
 const STORAGE_KEY = 'loans-data';
 
@@ -488,13 +493,12 @@ function normalizeLoan(loan){
     termMonths,
     numberPayments,
     fundingMethod,
-    description: String(loan.description||''),
     cardBank: fundingMethod==='credit-card' ? String(loan.cardBank||'') : '',
     startDate,
     dueDate: loan.dueDate || calculateDueDate(startDate,termMonths,frequency,numberPayments),
-    payments: Array.isArray(loan.payments) ? loan.payments.map((p,index)=>{
+    payments: Array.isArray(loan.payments) ? loan.payments.map(p=>{
       const method = Object.prototype.hasOwnProperty.call(PAYMENT_METHODS,p.method) ? p.method : 'cash';
-      return {...p,id:p.id||`LEGACY-${index}-${p.date||'DATE'}-${Number(p.amount)||0}`,method,provider:method!=='cash'?String(p.provider||''):''};
+      return {...p,method,provider:method!=='cash'?String(p.provider||''):''};
     }) : [],
     amountToPay: amountToPay({...loan,termMonths}),
   };
@@ -604,6 +608,10 @@ function icon(name){
 
 function render(){
   const root = document.getElementById('root');
+  const active = document.activeElement;
+  const activeId = active && active.id ? active.id : null;
+  const selStart = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
+  const selEnd = active && typeof active.selectionEnd === 'number' ? active.selectionEnd : null;
   root.className = '';
   const t = computeTotals();
 
@@ -626,6 +634,16 @@ function render(){
     </div>
     <div class="toast" id="toast"></div>
   `;
+
+  if (activeId) {
+    const el = document.getElementById(activeId);
+    if (el && typeof el.focus === 'function') {
+      el.focus();
+      if (selStart !== null && typeof el.setSelectionRange === 'function') {
+        try{ el.setSelectionRange(selStart, selEnd); }catch(_){}
+      }
+    }
+  }
 }
 
 function renderDashboard(t){
@@ -704,7 +722,7 @@ function renderLoans(t){
   let list = state.loans.filter(l=>{
     const status = computeStatus(l);
     if (state.filter !== 'all' && status !== state.filter) return false;
-    if (state.search && !l.name.toLowerCase().includes(state.search.toLowerCase()) && !l.id.toLowerCase().includes(state.search.toLowerCase()) && !String(l.cardBank||'').toLowerCase().includes(state.search.toLowerCase()) && !String(l.description||'').toLowerCase().includes(state.search.toLowerCase()) && !methodLabel(l.fundingMethod).toLowerCase().includes(state.search.toLowerCase())) return false;
+    if (state.search && !l.name.toLowerCase().includes(state.search.toLowerCase()) && !l.id.toLowerCase().includes(state.search.toLowerCase()) && !String(l.cardBank||'').toLowerCase().includes(state.search.toLowerCase()) && !methodLabel(l.fundingMethod).toLowerCase().includes(state.search.toLowerCase())) return false;
     return true;
   });
 
@@ -722,13 +740,13 @@ function renderLoans(t){
     </div>
 
     <div class="filters">
-      <input id="loan_search" type="text" placeholder="Search name, loan ID, funding, or description" value="${escapeHtml(state.search)}" oninput="onSearch(this.value)" />
+      <input type="text" id="loanSearchInput" placeholder="Search name or loan ID" value="${escapeHtml(state.search)}" oninput="onSearch(this.value)" />
       ${['all','active','overdue','paid'].map(f=>`
         <button class="filter-pill ${state.filter===f?'active':''}" onclick="setFilter('${f}')">${f[0].toUpperCase()+f.slice(1)}</button>
       `).join('')}
     </div>
 
-    <div class="panel" style="padding:0; overflow:auto;">
+    <div class="panel table-scroll-panel">
       ${list.length === 0 ? `
         <div class="empty">
           <div class="big">No loans match</div>
@@ -781,43 +799,14 @@ function escapeHtml(s){
 
 function setView(v){ state.view = v; state.search=''; state.filter='all'; render(); }
 function setFilter(f){ state.filter = f; render(); }
-function onSearch(v){
-  state.search=v;
-  clearTimeout(window._loanSearchTimer);
-  window._loanSearchTimer=setTimeout(()=>render(),150);
-}
+function onSearch(v){ state.search = v; render(); }
 
 function deleteLoan(id){
-  const loan=state.loans.find(l=>l.id===id);
-  if(!loan)return;
-  const modalRoot=document.createElement('div');
-  modalRoot.className='overlay';
-  modalRoot.id='modalOverlay';
-  modalRoot.innerHTML=`<div class="modal" style="width:430px" role="dialog" aria-modal="true" aria-labelledby="deleteLoanTitle">
-    <h3 id="deleteLoanTitle">Delete borrower?</h3>
-    <div class="detail-item" style="margin-bottom:14px"><small>Borrower · ${escapeHtml(loan.id)}</small><strong>${escapeHtml(loan.name)}</strong></div>
-    <p class="helper" style="margin-bottom:14px">This permanently removes the loan and all of its payment records. This action cannot be undone.</p>
-    <div class="field"><label for="delete_confirmation">Type <strong>delete</strong> to confirm</label><input id="delete_confirmation" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="delete" oninput="updateDeleteConfirmation()" /></div>
-    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn danger" id="confirm_delete_button" onclick="confirmDeleteLoan('${id}')" disabled>Delete borrower</button></div>
-  </div>`;
-  document.body.appendChild(modalRoot);
-  document.getElementById('delete_confirmation').focus();
-}
-
-function updateDeleteConfirmation(){
-  const input=document.getElementById('delete_confirmation');
-  const button=document.getElementById('confirm_delete_button');
-  if(button)button.disabled=!input||input.value.trim()!=='delete';
-}
-
-function confirmDeleteLoan(id){
-  const input=document.getElementById('delete_confirmation');
-  if(!input||input.value.trim()!=='delete')return;
+  if (!confirm('Remove this loan record? This cannot be undone.')) return;
   state.loans = state.loans.filter(l=>l.id!==id);
   saveLoans();
-  closeModal();
   render();
-  showToast('Borrower deleted');
+  showToast('Loan removed');
 }
 
 function openModal(id){
@@ -832,7 +821,6 @@ function openModal(id){
         <div class="field"><label for="f_id">Contract / loan ID</label><input id="f_id" type="text" value="${existing?escapeHtml(existing.id):nextLoanId()}" ${existing?'readonly':''} /></div>
         <div class="field"><label for="f_name">Borrower name</label><input id="f_name" type="text" value="${existing?escapeHtml(existing.name):''}" placeholder="e.g. Juana" /></div>
       </div>
-      <div class="field"><label for="f_description">Loan description (optional)</label><textarea id="f_description" maxlength="500" placeholder="Purpose, item financed, or other account details">${existing?escapeHtml(existing.description||''):''}</textarea></div>
       <div class="field-grid">
         <div class="field"><label for="f_principal">Loan principal (₱)</label><input id="f_principal" type="number" min="0" step="0.01" value="${existing?existing.principal:''}" placeholder="10000" /></div>
         <div class="field"><label for="f_interest">Monthly interest rate (%)</label><input id="f_interest" type="number" min="0" step="0.01" value="${existing?existing.interestRate:0}" placeholder="5" /></div>
@@ -904,7 +892,6 @@ function closeModal(){
 function submitLoan(id){
   const loanId = document.getElementById('f_id').value.trim().toUpperCase();
   const name = document.getElementById('f_name').value.trim();
-  const description = document.getElementById('f_description').value.trim();
   const principal = parseFloat(document.getElementById('f_principal').value);
   const interestRate = parseFloat(document.getElementById('f_interest').value) || 0;
   const paymentFrequency = document.getElementById('f_frequency').value;
@@ -926,10 +913,10 @@ function submitLoan(id){
 
   if (id){
     const loan = state.loans.find(l=>l.id===id);
-    Object.assign(loan,{name,description,principal,dueDate,interestRate,paymentFrequency,termMonths,startDate,numberPayments,fundingMethod,cardBank,amountToPay:calculatedAmount});
+    Object.assign(loan,{name,principal,dueDate,interestRate,paymentFrequency,termMonths,startDate,numberPayments,fundingMethod,cardBank,amountToPay:calculatedAmount});
     delete loan.cardDueDate;
   } else {
-    state.loans.push({id:loanId,name,description,principal,collected:0,dueDate,interestRate,paymentFrequency,termMonths,startDate,numberPayments,fundingMethod,cardBank,amountToPay:calculatedAmount,payments:[]});
+    state.loans.push({id:loanId,name,principal,collected:0,dueDate,interestRate,paymentFrequency,termMonths,startDate,numberPayments,fundingMethod,cardBank,amountToPay:calculatedAmount,payments:[]});
   }
   saveLoans();
   closeModal();
@@ -937,20 +924,19 @@ function submitLoan(id){
   showToast(id ? 'Loan updated' : 'Loan added');
 }
 
-function openPaymentModal(id,paymentId){
+function openPaymentModal(id){
   const loan = state.loans.find(l=>l.id===id);
   if (!loan) return;
-  const payment=paymentId?(loan.payments||[]).find(p=>p.id===paymentId):null;
   const modalRoot = document.createElement('div');
   modalRoot.className='overlay'; modalRoot.id='modalOverlay';
-  modalRoot.innerHTML=`<div class="modal" style="width:430px"><h3>${payment?'Edit payment':'Record payment'}</h3>
+  modalRoot.innerHTML=`<div class="modal" style="width:430px"><h3>Record payment</h3>
     <div class="detail-item" style="margin-bottom:14px"><small>Borrower · ${loan.id}</small><strong>${escapeHtml(loan.name)}</strong><div class="helper">Balance: ${peso(Math.max(amountToPay(loan)-loan.collected,0))} · Planned: ${peso(installmentAmount(loan))}</div></div>
-    <div class="field"><label for="p_date">Collection date</label><input id="p_date" type="date" min="${loan.startDate}" max="${todayISO()}" value="${payment?payment.date:todayISO()}" /></div>
-    <div class="field"><label for="p_amount">Amount collected (₱)</label><input id="p_amount" type="number" min="0.01" step="0.01" value="${payment?Number(payment.amount).toFixed(2):installmentAmount(loan).toFixed(2)}" /></div>
-    <div class="field"><label for="p_method">Payment received through</label><select id="p_method">${['cash','gcash','maya','bank-transfer'].map(method=>`<option value="${method}" ${(payment?payment.method:'cash')===method?'selected':''}>${methodLabel(method)}</option>`).join('')}</select></div>
-    <div class="conditional-fields" id="p_card_fields"><div class="field"><label for="p_provider" id="p_provider_label">Reference no. / bank name</label><input id="p_provider" type="text" value="${payment?escapeHtml(payment.provider||''):''}" placeholder="e.g. reference number or bank name" /></div></div>
-    <div class="field"><label for="p_note">Note (optional)</label><input id="p_note" type="text" value="${payment?escapeHtml(payment.note||''):''}" placeholder="Receipt, channel, or reminder" /></div>
-    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="submitPayment('${loan.id}','${payment?payment.id:''}')">${payment?'Save changes':'Save payment'}</button></div></div>`;
+    <div class="field"><label for="p_date">Collection date</label><input id="p_date" type="date" value="${todayISO()}" /></div>
+    <div class="field"><label for="p_amount">Amount collected (₱)</label><input id="p_amount" type="number" min="0.01" step="0.01" value="${installmentAmount(loan).toFixed(2)}" /></div>
+    <div class="field"><label for="p_method">Payment received through</label><select id="p_method"><option value="cash">Cash</option><option value="gcash">GCash</option><option value="maya">Maya</option><option value="bank-transfer">Bank transfer</option></select></div>
+    <div class="conditional-fields" id="p_card_fields"><div class="field"><label for="p_provider" id="p_provider_label">Reference no. / bank name</label><input id="p_provider" type="text" placeholder="e.g. reference number or bank name" /></div></div>
+    <div class="field"><label for="p_note">Note (optional)</label><input id="p_note" type="text" placeholder="Receipt, channel, or reminder" /></div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="submitPayment('${loan.id}')">Save payment</button></div></div>`;
   document.body.appendChild(modalRoot);
   document.getElementById('p_method').addEventListener('change',updatePaymentMethodFields);
   updatePaymentMethodFields();
@@ -964,7 +950,7 @@ function updatePaymentMethodFields(){
   if(label)label.textContent=method==='bank-transfer'?'Bank name / reference no.':'Reference no. (optional)';
 }
 
-function submitPayment(id,paymentId){
+function submitPayment(id){
   const loan=state.loans.find(l=>l.id===id);
   const date=document.getElementById('p_date').value;
   const amount=parseFloat(document.getElementById('p_amount').value);
@@ -972,20 +958,12 @@ function submitPayment(id,paymentId){
   const provider=method!=='cash'?document.getElementById('p_provider').value.trim():'';
   const note=document.getElementById('p_note').value.trim();
   if(!date){showToast('Collection date is required');return;}
-  if(date<loan.startDate){showToast(`Payment date cannot be before ${fmtDate(loan.startDate)}`);return;}
-  if(date>todayISO()){showToast('Payment date cannot be in the future');return;}
   if(!amount||amount<=0){showToast('Enter a valid payment amount');return;}
   loan.payments=Array.isArray(loan.payments)?loan.payments:[];
-  const existing=paymentId?loan.payments.find(p=>p.id===paymentId):null;
-  if(existing){
-    loan.collected=Math.max(0,(Number(loan.collected)||0)-(Number(existing.amount)||0)+amount);
-    Object.assign(existing,{date,amount,method,provider,note});
-  }else{
-    loan.payments.push({id:'P'+Date.now().toString(36).toUpperCase(),date,amount,method,provider,note});
-    loan.collected=(Number(loan.collected)||0)+amount;
-  }
-  loan.latestCollectionDate=loan.payments.map(p=>p.date).filter(Boolean).sort().pop()||'';
-  saveLoans(); closeModal(); render(); showToast(existing?'Payment updated':'Payment recorded');
+  loan.payments.push({id:'P'+Date.now().toString(36).toUpperCase(),date,amount,method,provider,note});
+  loan.collected=(Number(loan.collected)||0)+amount;
+  loan.latestCollectionDate=date;
+  saveLoans(); closeModal(); render(); showToast('Payment recorded');
 }
 
 function openLoanDetails(id){
@@ -997,7 +975,6 @@ function openLoanDetails(id){
   const modalRoot=document.createElement('div'); modalRoot.className='overlay'; modalRoot.id='modalOverlay';
   modalRoot.innerHTML=`<div class="modal" style="width:780px">
     <div class="person-head"><div class="person-avatar">${escapeHtml(initials(loan.name))}</div><div><h3>${escapeHtml(loan.name)}</h3><div class="person-meta">${loan.id} · ${methodLabel(loan.fundingMethod)}${loan.cardBank?' · '+escapeHtml(loan.cardBank):''}</div></div><div class="person-status"><span class="badge ${status}">${status[0].toUpperCase()+status.slice(1)}</span></div></div>
-    ${loan.description?`<div class="detail-item" style="margin-bottom:14px"><small>Loan description</small><div style="margin-top:5px;line-height:1.45">${escapeHtml(loan.description)}</div></div>`:''}
     <div class="person-summary">
       <div class="person-card"><div class="person-card-label">▣ Principal</div><strong>${peso(loan.principal)}</strong></div>
       <div class="person-card"><div class="person-card-label">↗ Collected</div><strong>${peso(loan.collected)}</strong></div>
@@ -1005,7 +982,7 @@ function openLoanDetails(id){
       <div class="person-card"><div class="person-card-label">▤ Loan due date</div><strong>${fmtDate(loan.dueDate)}</strong></div>
     </div>
     <div class="subheading">Payment records (${payments.length})</div>
-    ${payments.length?`<div style="overflow:auto"><table class="compact-table"><thead><tr><th>Payment date</th><th>Amount</th><th>Method</th><th>Note</th><th></th></tr></thead><tbody>${payments.map(p=>`<tr><td class="mono">${fmtDate(p.date)}</td><td class="mono">${peso(p.amount)}</td><td>${methodBadge(p.method,p.provider)}</td><td>${escapeHtml(p.note||'—')}</td><td><button class="btn ghost small" onclick="closeModal();openPaymentModal('${loan.id}','${p.id}')">Edit</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty" style="padding:18px">No dated payment records yet.</div>`}
+    ${payments.length?`<div style="overflow:auto"><table class="compact-table"><thead><tr><th>Payment date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead><tbody>${payments.map(p=>`<tr><td class="mono">${fmtDate(p.date)}</td><td class="mono">${peso(p.amount)}</td><td>${methodBadge(p.method,p.provider)}</td><td>${escapeHtml(p.note||'—')}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty" style="padding:18px">No dated payment records yet.</div>`}
     ${loan.collected>itemizedTotal+0.01?`<div class="helper" style="margin-top:10px">${peso(loan.collected-itemizedTotal)} of carried-over collections does not have individual payment dates. New recorded payments will appear above.</div>`:''}
     <div class="modal-actions"><button class="btn ghost" onclick="generatePNG('${loan.id}')">PNG</button><button class="btn ghost" onclick="generatePDF('${loan.id}')">PDF</button><button class="btn primary" onclick="closeModal();openPaymentModal('${loan.id}')">+ Record payment</button><button class="btn ghost" onclick="closeModal()">Close</button></div></div>`;
   document.body.appendChild(modalRoot);
@@ -1047,50 +1024,11 @@ function upcomingPaymentsNextMonth(loans){
   return loans.map(loan=>({loan,next:nextPaymentInfo(loan)})).filter(x=>x.next&&x.next.date>=start&&x.next.date<=end).sort((a,b)=>a.next.date.localeCompare(b.next.date));
 }
 
-function exportFileName(id,extension){
-  if(!id)return `lending-portfolio-${todayISO()}.${extension}`;
-  const loan=state.loans.find(l=>l.id===id);
-  const borrower=String(loan?.name||'borrower').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase();
-  return `${id}-${borrower}-loan.${extension}`;
-}
-
-function isAppleMobile(){
-  return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-}
-
-async function saveExportBlob(blob,filename){
-  const file=new File([blob],filename,{type:blob.type});
-  if(isAppleMobile()&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-    try{
-      await navigator.share({files:[file],title:filename});
-      showToast('Export ready — choose Save to Files');
-      return;
-    }catch(error){
-      if(error&&error.name==='AbortError')return;
-    }
-  }
-  const url=URL.createObjectURL(blob);
-  if(isAppleMobile()){
-    window.location.href=url;
-    showToast('Export opened — use Share to save it');
-    setTimeout(()=>URL.revokeObjectURL(url),60000);
-    return;
-  }
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),4000);
-  showToast(`${filename.toUpperCase().endsWith('.PDF')?'PDF':'PNG'} downloaded`);
-}
-
 function generatePNG(id){
   const loans=id?state.loans.filter(l=>l.id===id):state.loans;
   if(!loans.length){showToast('There are no loans to export');return;}
   const payments=id?[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)):[];
-  const width=1600,rowHeight=58,height=id?555+(payments.length*50):340+(loans.length*rowHeight);
+  const width=1600,rowHeight=58,height=id?490+(payments.length*50):340+(loans.length*rowHeight);
   const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height;
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#F7F5EF'; ctx.fillRect(0,0,width,height);
@@ -1101,46 +1039,53 @@ function generatePNG(id){
   const totals=loans.reduce((a,l)=>{a.principal+=l.principal;a.payable+=amountToPay(l);a.collected+=l.collected;a.balance+=Math.max(amountToPay(l)-l.collected,0);return a;},{principal:0,payable:0,collected:0,balance:0});
   const metrics=[['PRINCIPAL',totals.principal],['TOTAL COLLECTIBLE',totals.payable],['COLLECTED',totals.collected],['OUTSTANDING',totals.balance]];
   metrics.forEach((m,i)=>{const x=58+i*382;ctx.fillStyle='#FFFFFF';ctx.fillRect(x,136,356,105);ctx.strokeStyle='#DEDCD5';ctx.strokeRect(x,136,356,105);ctx.fillStyle='#8B8880';ctx.font='700 13px Arial';ctx.fillText(m[0],x+20,168);ctx.fillStyle='#17201D';ctx.font='700 25px monospace';ctx.fillText(peso(m[1]),x+20,210);});
-  const cols=[{x:58,w:290,label:'BORROWER / ID'},{x:360,w:185,label:'FUNDING'},{x:557,w:255,label:'PAYMENT PLAN'},{x:824,w:168,label:'COLLECTIBLE'},{x:1004,w:145,label:'COLLECTED'},{x:1161,w:145,label:'BALANCE'},{x:1318,w:224,label:'NEXT DUE'}];
+  const cols=[{x:58,w:345,label:'BORROWER / ID'},{x:415,w:240,label:'FUNDING'},{x:667,w:280,label:'PAYMENT PLAN'},{x:959,w:205,label:'COLLECTIBLE'},{x:1176,w:185,label:'COLLECTED'},{x:1373,w:169,label:'BALANCE'}];
   ctx.fillStyle='#E9E6DE';ctx.fillRect(48,267,1504,42);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';cols.forEach(c=>ctx.fillText(c.label,c.x,293));
   function fit(text,max){const original=String(text);let shown=original;while(shown.length&&ctx.measureText(shown+(shown.length<original.length?'…':'')).width>max)shown=shown.slice(0,-1);return shown+(shown.length<original.length?'…':'');}
-  loans.forEach((l,i)=>{const y=309+i*rowHeight,next=nextPaymentInfo(l);if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,rowHeight);}ctx.fillStyle='#202521';ctx.font='700 15px Arial';ctx.fillText(fit(l.name,250),58,y+23);ctx.fillStyle='#88847C';ctx.font='12px monospace';ctx.fillText(l.id,58,y+43);ctx.fillStyle=l.fundingMethod==='credit-card'?'#355B8A':'#176A55';ctx.font='700 14px Arial';ctx.fillText(methodLabel(l.fundingMethod),360,y+25);ctx.fillStyle='#88847C';ctx.font='12px Arial';ctx.fillText(fit(l.cardBank||'',160),360,y+43);ctx.fillStyle='#202521';ctx.font='13px Arial';ctx.fillText(fit(`${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments} × ${peso(installmentAmount(l))}`,235),557,y+31);ctx.font='700 13px monospace';ctx.fillText(peso(amountToPay(l)),824,y+31);ctx.fillStyle='#176A55';ctx.fillText(peso(l.collected),1004,y+31);ctx.fillStyle='#A93342';ctx.fillText(peso(Math.max(amountToPay(l)-l.collected,0)),1161,y+31);ctx.fillStyle=next?'#202521':'#176A55';ctx.font='700 13px Arial';ctx.fillText(next?fmtDate(next.date):'PAID',1318,y+24);ctx.fillStyle='#88847C';ctx.font='12px Arial';if(next)ctx.fillText(`#${next.number} · ${peso(next.amount)}`,1318,y+43);});
-  if(id){const next=nextPaymentInfo(loans[0]),listY=470;ctx.fillStyle=next?'#FFF7DF':'#E8F3EE';ctx.fillRect(48,382,1504,58);ctx.fillStyle=next?'#6D5314':'#176A55';ctx.font='700 15px Arial';ctx.fillText(next?`NEXT PAYMENT DUE  ·  #${next.number}  ·  ${fmtDate(next.date)}  ·  ${peso(next.amount)}`:'LOAN PAID IN FULL — NO NEXT PAYMENT DUE',58,417);ctx.fillStyle='#202521';ctx.font='700 20px Arial';ctx.fillText(`Payment records (${payments.length})`,58,listY);const paymentCols=[{x:58,label:'PAYMENT DATE'},{x:370,label:'AMOUNT'},{x:650,label:'METHOD'},{x:1050,label:'NOTE'}];ctx.fillStyle='#E9E6DE';ctx.fillRect(48,listY+22,1504,38);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';paymentCols.forEach(c=>ctx.fillText(c.label,c.x,listY+47));payments.forEach((p,i)=>{const y=listY+60+i*50;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,50);}ctx.fillStyle='#222';ctx.font='13px monospace';ctx.fillText(fmtDate(p.date),58,y+31);ctx.fillText(peso(p.amount),370,y+31);ctx.font='13px Arial';ctx.fillText(`${methodLabel(p.method)}${p.provider?' · '+fit(p.provider,220):''}`,650,y+31);ctx.fillStyle='#666';ctx.fillText(fit(p.note||'—',440),1050,y+31);});}
-  canvas.toBlob(blob=>{if(!blob){showToast('Could not create PNG');return;}saveExportBlob(blob,exportFileName(id,'png'));},'image/png');
+  loans.forEach((l,i)=>{const y=309+i*rowHeight;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,rowHeight);}ctx.fillStyle='#202521';ctx.font='700 15px Arial';ctx.fillText(fit(l.name,300),58,y+23);ctx.fillStyle='#88847C';ctx.font='12px monospace';ctx.fillText(l.id,58,y+43);ctx.fillStyle=l.fundingMethod==='credit-card'?'#355B8A':'#176A55';ctx.font='700 14px Arial';ctx.fillText(methodLabel(l.fundingMethod),415,y+25);ctx.fillStyle='#88847C';ctx.font='12px Arial';ctx.fillText(fit(l.cardBank||'',205),415,y+43);ctx.fillStyle='#202521';ctx.font='14px Arial';ctx.fillText(`${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments} × ${peso(installmentAmount(l))}`,667,y+31);ctx.font='700 14px monospace';ctx.fillText(peso(amountToPay(l)),959,y+31);ctx.fillStyle='#176A55';ctx.fillText(peso(l.collected),1176,y+31);ctx.fillStyle='#A93342';ctx.fillText(peso(Math.max(amountToPay(l)-l.collected,0)),1373,y+31);});
+  if(id){const listY=405;ctx.fillStyle='#202521';ctx.font='700 20px Arial';ctx.fillText(`Payment records (${payments.length})`,58,listY);const paymentCols=[{x:58,label:'PAYMENT DATE'},{x:370,label:'AMOUNT'},{x:650,label:'METHOD'},{x:1050,label:'NOTE'}];ctx.fillStyle='#E9E6DE';ctx.fillRect(48,listY+22,1504,38);ctx.fillStyle='#6F6B64';ctx.font='700 12px Arial';paymentCols.forEach(c=>ctx.fillText(c.label,c.x,listY+47));payments.forEach((p,i)=>{const y=listY+60+i*50;if(i%2===0){ctx.fillStyle='#FFFFFF';ctx.fillRect(48,y,1504,50);}ctx.fillStyle='#222';ctx.font='13px monospace';ctx.fillText(fmtDate(p.date),58,y+31);ctx.fillText(peso(p.amount),370,y+31);ctx.font='13px Arial';ctx.fillText(`${methodLabel(p.method)}${p.provider?' · '+fit(p.provider,220):''}`,650,y+31);ctx.fillStyle='#666';ctx.fillText(fit(p.note||'—',440),1050,y+31);});}
+  canvas.toBlob(blob=>{if(!blob){showToast('Could not create PNG');return;}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=id?`${id}-${String(loans[0].name).replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-loan.png`:`lending-portfolio-${todayISO()}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('PNG report downloaded');},'image/png');
 }
 
 function generatePDF(id){
-  const loans=id?state.loans.filter(l=>l.id===id):state.loans;
-  if(!loans.length){showToast('There are no loans to export');return;}
-  if(!window.jspdf||!window.jspdf.jsPDF){showToast('PDF generator did not load — refresh and try again');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const pageWidth=doc.internal.pageSize.getWidth(),pageHeight=doc.internal.pageSize.getHeight(),margin=10;
-  const money=n=>`PHP ${Math.round(Number(n)||0).toLocaleString('en-PH')}`;
-  const clean=value=>String(value??'').replace(/[\u2013\u2014]/g,'-').replace(/\u00b7/g,'/');
-  const totals=loans.reduce((a,l)=>{a.principal+=l.principal;a.payable+=amountToPay(l);a.collected+=l.collected;a.balance+=Math.max(amountToPay(l)-l.collected,0);return a;},{principal:0,payable:0,collected:0,balance:0});
-  let y=0;
-  function pageHeader(continued){
-    doc.setFillColor(0,62,53);doc.rect(0,0,pageWidth,25,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(`Ledger - Loan ${id?'Statement':'Portfolio Report'}${continued?' (continued)':''}`,margin,12);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(clean(new Date().toLocaleString('en-PH')),pageWidth-margin,12,{align:'right'});doc.setTextColor(30,34,31);y=32;
-  }
-  function ensureSpace(height){if(y+height>pageHeight-12){doc.addPage();pageHeader(true);return true;}return false;}
-  function drawTable(headers,rows,widths){
-    const rowHeight=8,totalWidth=widths.reduce((s,w)=>s+w,0),startX=margin;
-    ensureSpace(rowHeight*2);
-    doc.setFillColor(233,230,222);doc.rect(startX,y,totalWidth,rowHeight,'F');doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(90,86,80);
-    let x=startX;headers.forEach((h,i)=>{doc.text(clean(h),x+1.5,y+5);x+=widths[i];});y+=rowHeight;
-    rows.forEach((row,rowIndex)=>{if(ensureSpace(rowHeight)){doc.setFillColor(233,230,222);doc.rect(startX,y,totalWidth,rowHeight,'F');x=startX;headers.forEach((h,i)=>{doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(90,86,80);doc.text(clean(h),x+1.5,y+5);x+=widths[i];});y+=rowHeight;}if(rowIndex%2===0){doc.setFillColor(249,248,244);doc.rect(startX,y,totalWidth,rowHeight,'F');}doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(30,34,31);x=startX;row.forEach((cell,i)=>{const clipped=doc.splitTextToSize(clean(cell),widths[i]-3)[0]||'';doc.text(clipped,x+1.5,y+5);x+=widths[i];});y+=rowHeight;});
-  }
-  pageHeader(false);
-  const metrics=[['Principal',totals.principal],['Collectible',totals.payable],['Collected',totals.collected],['Outstanding',totals.balance]],metricWidth=(pageWidth-margin*2-9)/4;
-  metrics.forEach((metric,i)=>{const x=margin+i*(metricWidth+3);doc.setDrawColor(210,207,199);doc.rect(x,y,metricWidth,18);doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(115,110,102);doc.text(metric[0].toUpperCase(),x+3,y+6);doc.setFontSize(11);doc.setTextColor(25,30,27);doc.text(money(metric[1]),x+3,y+14);});y+=24;
-  const loanRows=loans.map(l=>{const next=nextPaymentInfo(l);return [`${l.name} / ${l.id}`,money(l.principal),`${methodLabel(l.fundingMethod)}${l.cardBank?' / '+l.cardBank:''}`,`${frequencyLabel(l.paymentFrequency)} / ${l.numberPayments} x ${money(installmentAmount(l))}`,money(amountToPay(l)),money(l.collected),money(Math.max(amountToPay(l)-l.collected,0)),next?`${fmtDate(next.date)} / #${next.number} / ${money(next.amount)}`:'PAID',computeStatus(l).toUpperCase()];});
-  drawTable(['Borrower / ID','Principal','Funding','Payment plan','Collectible','Collected','Balance','Next due date','Status'],loanRows,[41,24,28,44,26,24,24,42,14]);
-  const upcoming=upcomingPaymentsNextMonth(loans);ensureSpace(18);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(25,30,27);doc.text('Payments due - next 1 month',margin,y+7);y+=11;
-  if(upcoming.length)drawTable(['Borrower / ID','Payment','Next due date','Amount due','Remaining balance'],upcoming.map(x=>[`${x.loan.name} / ${x.loan.id}`,`#${x.next.number}`,fmtDate(x.next.date),money(x.next.amount),money(x.next.balance)]),[70,28,50,48,48]);else{doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(100,100,100);doc.text('No payments are due within the next month.',margin,y+5);y+=10;}
-  if(id){const payments=[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)),next=nextPaymentInfo(loans[0]);ensureSpace(24);doc.setFillColor(next?255:232,next?247:243,next?223:238);doc.rect(margin,y,pageWidth-margin*2,13,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(next?109:23,next?83:106,next?20:85);doc.text(next?`NEXT PAYMENT DUE / #${next.number} / ${fmtDate(next.date)} / ${money(next.amount)}`:'LOAN PAID IN FULL - NO NEXT PAYMENT DUE',margin+3,y+8);y+=19;doc.setTextColor(25,30,27);doc.setFontSize(11);doc.text(`Payment records (${payments.length})`,margin,y);y+=5;if(payments.length)drawTable(['Payment date','Amount','Method','Note'],payments.map(p=>[fmtDate(p.date),money(p.amount),`${methodLabel(p.method)}${p.provider?' / '+p.provider:''}`,p.note||'-']),[45,45,70,90]);else{doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('No dated payment records yet.',margin,y+5);}}
-  const pages=doc.getNumberOfPages();for(let page=1;page<=pages;page++){doc.setPage(page);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(110,110,110);doc.text(`Ledger Lending CRM / Page ${page} of ${pages}`,pageWidth-margin,pageHeight-5,{align:'right'});}
-  saveExportBlob(doc.output('blob'),exportFileName(id,'pdf'));
+  const loans = id ? state.loans.filter(l=>l.id===id) : state.loans;
+  if (!loans.length){ showToast('There are no loans to export'); return; }
+  document.querySelectorAll('.print-report').forEach(el=>el.remove());
+  const totals = loans.reduce((a,l)=>{
+    a.principal += l.principal;
+    a.payable += amountToPay(l);
+    a.collected += l.collected;
+    a.balance += Math.max(amountToPay(l)-l.collected,0);
+    return a;
+  },{principal:0,payable:0,collected:0,balance:0});
+  const upcoming=upcomingPaymentsNextMonth(loans);
+  const report = document.createElement('section');
+  report.className = 'print-report';
+  report.innerHTML = `
+    <div class="print-title">
+      <div><h1>Ledger — Loan ${id?'Statement':'Portfolio Report'}</h1><p>${id?'Borrower account details':'Complete loan portfolio'}</p></div>
+      <p>Generated ${new Date().toLocaleString('en-PH')}</p>
+    </div>
+    <div class="print-summary">
+      <div><small>Total principal</small><strong>${peso(totals.principal)}</strong></div>
+      <div><small>Amount to pay</small><strong>${peso(totals.payable)}</strong></div>
+      <div><small>Collected</small><strong>${peso(totals.collected)}</strong></div>
+      <div><small>Outstanding</small><strong>${peso(totals.balance)}</strong></div>
+    </div>
+    <table>
+      <thead><tr><th>Borrower / ID</th><th>Principal</th><th>Funding</th><th>Monthly rate</th><th>Term</th><th>Schedule</th><th>Per period</th><th>Total collectible</th><th>Collected</th><th>Balance</th><th>Due date</th><th>Status</th></tr></thead>
+      <tbody>${loans.map(l=>{
+        const status=computeStatus(l);
+        return `<tr><td><strong>${escapeHtml(l.name)}</strong><br>${l.id}</td><td>${peso(l.principal)}</td><td>${methodLabel(l.fundingMethod)}${l.cardBank?' · '+escapeHtml(l.cardBank):''}</td><td>${Number(l.interestRate).toFixed(2)}%</td><td>${l.termMonths} months</td><td>${frequencyLabel(l.paymentFrequency)} · ${l.numberPayments}</td><td>${peso(installmentAmount(l))}</td><td>${peso(amountToPay(l))}</td><td>${peso(l.collected)}</td><td>${peso(Math.max(amountToPay(l)-l.collected,0))}</td><td>${fmtDate(l.dueDate)}</td><td>${status.toUpperCase()}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+    <h2 style="font:16px Georgia,serif;margin:18px 0 7px">Upcoming payments — next 1 month</h2>${upcoming.length?`<table><thead><tr><th>Borrower / ID</th><th>Payment</th><th>Due date</th><th>Amount due</th><th>Remaining balance</th></tr></thead><tbody>${upcoming.map(x=>`<tr><td><strong>${escapeHtml(x.loan.name)}</strong><br>${x.loan.id}</td><td>#${x.next.number}</td><td>${fmtDate(x.next.date)}</td><td>${peso(x.next.amount)}</td><td>${peso(x.next.balance)}</td></tr>`).join('')}</tbody></table>`:`<p style="font-size:10px;color:#666">No upcoming payments are due within the next month.</p>`}
+    ${id?`<h2 style="font:16px Georgia,serif;margin:18px 0 7px">Payment records (${(loans[0].payments||[]).length})</h2>${(loans[0].payments||[]).length?`<table><thead><tr><th>Payment date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead><tbody>${[...(loans[0].payments||[])].sort((a,b)=>b.date.localeCompare(a.date)).map(p=>`<tr><td>${fmtDate(p.date)}</td><td>${peso(p.amount)}</td><td>${methodLabel(p.method)}${p.provider?' · '+escapeHtml(p.provider):''}</td><td>${escapeHtml(p.note||'—')}</td></tr>`).join('')}</tbody></table>`:`<p style="font-size:10px;color:#666">No dated payment records yet.</p>`}`:''}
+    <div class="print-footer">Ledger Lending CRM · Keep this report for your records.</div>`;
+  document.body.appendChild(report);
+  const cleanup = ()=>{ report.remove(); window.removeEventListener('afterprint',cleanup); };
+  window.addEventListener('afterprint',cleanup);
+  setTimeout(()=>window.print(),100);
 }
 
 loadLoans();
