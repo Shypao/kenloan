@@ -6,6 +6,7 @@
 //   TURSO_AUTH_TOKEN     the auth token for that database
 
 const { createClient } = require('@libsql/client');
+const { hasValidSession } = require('./_auth');
 
 let clientReady;
 
@@ -29,6 +30,12 @@ function getClient() {
 }
 
 module.exports = async (req, res) => {
+  if (!hasValidSession(req)) {
+    res.status(401).json({ error: 'Sign in required.' });
+    return;
+  }
+
+
   if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
     res.status(500).json({
       error:
